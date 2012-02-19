@@ -1,13 +1,13 @@
 #include <WaveHC.h>
 #include <WaveUtil.h>
 
-#define  EB_Detector  A0
-#define  WB_Detector  A1
+// Arduino Pin Assignments
+#define  EB_DETECT  A0
+#define  WB_DETECT  A1
+#define  LED_LEFT   A2
+#define  LED_RIGHT  A3
 
-#define  LED_LEFT     A2
-#define  LED_RIGHT    A3
-
-
+// Global State
 enum {
   kIdle = 0,
   kEastboundApproach,
@@ -19,28 +19,24 @@ enum {
 int interlockingState = kIdle;
 int deactivateTimer = 10000;
 
-// Function Prototypes
 
+// Function Prototypes
 void setupSDCard();
 void playWAVFile(char *name);
 void playCrossingBell(void);
-
 void turnOffLEDs(void);
 void animateLEDs(void);
 
 
 void setup()
 {
-  Serial.begin(9600);  // debugging
-
-  Serial.print(F("Free Memory:"));
-  Serial.println(FreeRam());
+  Serial.begin(9600);  // for debugging
 
   // Set up detector inputs, and enable on-chip ~20K pullup resistors
-  pinMode(EB_Detector,INPUT);
-  pinMode(WB_Detector,INPUT);
-  digitalWrite(EB_Detector,HIGH);
-  digitalWrite(WB_Detector,HIGH);
+  pinMode(EB_DETECT,INPUT);
+  pinMode(WB_DETECT,INPUT);
+  digitalWrite(EB_DETECT,HIGH);
+  digitalWrite(WB_DETECT,HIGH);
 
   // Set up LED outputs
   pinMode(LED_LEFT,OUTPUT);
@@ -58,25 +54,19 @@ void loop()
 {
   switch (interlockingState) {
   case kIdle:
-    if ((digitalRead(EB_Detector) == LOW) && (digitalRead(WB_Detector) == HIGH)) {
+    if ((digitalRead(EB_DETECT) == LOW) && (digitalRead(WB_DETECT) == HIGH)) {
       interlockingState = kEastboundApproach;
     } 
-    else if ((digitalRead(WB_Detector) == LOW) && (digitalRead(EB_Detector) == HIGH)) {
+    else if ((digitalRead(WB_DETECT) == LOW) && (digitalRead(EB_DETECT) == HIGH)) {
       interlockingState = kWestboundApproach;    
     }
     break;
 
   case kEastboundApproach:
-    // EBS = clear
-    // WBS = stop
-//  Serial.println(F("eastbound approach"));
     interlockingState = kApproachCommon;
     break;
 
   case kWestboundApproach:
-    // WBS = clear
-    // EBS = stop
-//  Serial.println(F("westbound approach"));
     interlockingState = kApproachCommon;
     break;
 
@@ -90,7 +80,7 @@ void loop()
     playCrossingBell();
 
     // Hang out in occupied state until both detectors are showing clear
-    if ((digitalRead(WB_Detector) == HIGH) && (digitalRead(EB_Detector) == HIGH)) {
+    if ((digitalRead(WB_DETECT) == HIGH) && (digitalRead(EB_DETECT) == HIGH)) {
       deactivateTimer--;
       if (!deactivateTimer) {
         turnOffLEDs();
@@ -107,44 +97,43 @@ void loop()
 }
 
 
+///////////////////////////////////////////////////////////////////
+//
+//  SD Card and WAV Playback
+//
+
 SdReader card;  // SDCard Interface
 FatVolume vol;  // Partition on the card
 FatReader root; // Root directory on the partition
 FatReader f;    // File we're going to play off the root directory
-
 WaveHC wave;    // WAV File Player
+
+#define	PANIC(x)	do {Serial.println(x); while (1);} while(0)
 
 void setupSDCard()
 {
-//  Serial.println(F("setupSDCard"));
-
   //if (!card.init(true)) { //play with 4 MHz spi if 8MHz isn't working for you
   if (!card.init()) {         //play with 8 MHz spi (default faster!)  
-    Serial.println(F("Card init. failed!"));  // Something went wrong, lets print out hy
-    while (1)
-      ;
+    PANIC(F("Card init. failed!"));  // Something went wrong, lets print out hy
   }
 
   // enable optimize read - some cards may timeout. Disable if you're having problems
   card.partialBlockRead(true);
 
-  // Now we will look for a FAT partition!
+  // Now we will look for a FAT partition, we have 5 spots to check
   uint8_t part;
-  for (part = 0; part < 5; part++) {   // we have up to 5 slots to look in
+  for (part = 0; part < 5; part++) {
     if (vol.init(card, part)) 
-      break;                           // we found one, lets bail
+      break; // we found one, lets bail
   }
-  if (part == 5) {                     // if we ended up not finding one  :(
-    Serial.println(F("No valid FAT partition!"));  // Something went wrong, lets print out why
-    while (1)
-      ;
+  if (part == 5) {
+    // if we ended up not finding one  :(
+    PANIC(F("No valid FAT partition!"));
   }
 
   // Try to open the root directory
   if (!root.openRoot(vol)) {
-    Serial.println(F("Can't open root dir!"));      // Something went wrong,
-    while (1)
-      ;
+    PANIC(F("Can't open root dir!"));
   }
 }
 
@@ -175,8 +164,10 @@ void playWAVFile(char *name) {
   wave.play();
 }
 
-
+///////////////////////////////////////////////////////////////////
+//
 // LED Animation Routines
+//
 
 enum {
   kLEDsOff = 0,
@@ -189,7 +180,6 @@ int ledState = kLEDsOff;
 int ledTimer = 0;
 
 void turnOffLEDs(void) {
-//  Serial.println(F("LEDs OFF"));
   digitalWrite(LED_RIGHT,HIGH);
   digitalWrite(LED_LEFT,HIGH);
   ledState = kLEDsOff;
@@ -203,7 +193,6 @@ void animateLEDs(void) {
   switch (ledState) {
 
   case kLEDsOff:
-//    Serial.println(F("LEDs ON"));
     ledTimer = 0;
     // fall through
 
@@ -213,7 +202,6 @@ void animateLEDs(void) {
       ledTimer = 10000;
       digitalWrite(LED_LEFT,LOW);
       digitalWrite(LED_RIGHT,HIGH);
-//      Serial.println(F("LEFT"));
     } 
     break;
 
@@ -223,7 +211,6 @@ void animateLEDs(void) {
       ledTimer = 10000;
       digitalWrite(LED_LEFT,HIGH);
       digitalWrite(LED_RIGHT,LOW);
-//      Serial.println(F("RIGHT"));
     }
     break;
   }
