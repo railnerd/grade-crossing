@@ -1,14 +1,21 @@
 Arduino Grade Crossing Sketch
 
-Model Railroading fun with the Adafruit Wave Shield. Follow the steps to have fun.
+Model Railroading fun with the Adafruit Wave Shield in 12 Steps:
+
+On the Hardware Side:
 
 1) Get an Arduino, Uno or other '328-equipped model preferred.
-1) Get an Adafruit Wave Shield for Arduino (http://www.adafruit.com/products/94)
-2) Get a FAT16 formatted SDCard
-3) Copy BELL.WAV on an SDCARD
-4) Get the WaveHC Library and install it in your libraries folder (http://code.google.com/p/wavehc/)
-5) Build and Download the GradeCrossing.ino sketch to your Arduino
+2) Get an Adafruit Wave Shield for Arduino (http://www.adafruit.com/products/94)
+3) Get a FAT16 formatted SDCard
+4) Copy BELL.WAV onto the SDCard
+5) Insert SDCard into Wave Sheild
 6) Attach open collector detector circuits to A0 and A1 pins (GROUNDED means detector triggered)
 7) Attach LED anode to 5V or 3.3V pin
 8) Attach LED cathodes through resistors to A2 and A3. (For 5V, use 470. For 3.3V use 330 ohm)
-9) Attach Powered Speaker to Audio Jack of Wave Shield
+9) Attach Speaker to Audio Jack of Wave Shield, Attach Power, Turn on Volume potentiometer!
+
+On the Software Side:
+
+10) Get the WaveHC Library and install it in your libraries folder (http://code.google.com/p/wavehc/)
+11) Build and Download the GradeCrossing.ino sketch to your Arduino
+12) Trigger the detector circuit and enjoy
